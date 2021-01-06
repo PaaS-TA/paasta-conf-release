@@ -1,0 +1,12 @@
+name: tomcat_conf
+
+templates:
+  post_deploy.sh.erb: bin/post-deploy
+
+packages: []
+
+properties:
+  cce_enable:
+    description: cce_tomcat_patch.
+    default: false
+

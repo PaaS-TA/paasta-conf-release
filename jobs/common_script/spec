@@ -1,0 +1,33 @@
+name: common_script
+
+templates:
+  pre_start.sh.erb: bin/pre-start
+  post_start.sh.erb: bin/post-start
+  post_deploy.sh.erb: bin/post-deploy
+
+packages: []
+
+properties:
+  pre_start_script:
+    description: Script that is run during pre-start to allow additional setup of environment, run as root user.
+    example: |-
+        #!/bin/bash
+        apt-get update && apt-get install wget git tmux -y
+    default: |-
+        #!/bin/bash
+
+  post_start_script:
+    description: Script that is run during post-start to allow additional setup of environment, run as root user.
+    example: |-
+        #!/bin/bash
+        apt-get update && apt-get install wget git tmux -y
+    default: |-
+        #!/bin/bash
+
+  post_deploy_script:
+    description: Script that is run during post-deploy to allow additional setup of environment, run as root user.
+    example: |-
+        #!/bin/bash
+        apt-get update && apt-get install wget git tmux -y
+    default: |-
+        #!/bin/bash
