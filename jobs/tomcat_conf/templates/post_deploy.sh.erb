@@ -9,11 +9,23 @@
     #[ID] : WS-05 : 설정 파일 권한
     chmod 600 $(find $target -type f)
 
-    #[ID] : WS-08 : 에러코드
+    #[ID] : WS-07 : 에러코드
     errorCodeCount=`cat $target/web.xml | grep '<error-code>404</error-code>' | wc -l`
     if [ ${errorCodeCount} -eq "0" ] ; then
       sed -i "$(grep -Rn '</welcome-file-list>' $target/web.xml | awk -F"[:]" '{ print $1 }')a \\
       \\
+      <error-page> \\
+        <error-code>400</error-code> \\
+        <location>/error.jsp</location> \\
+      </error-page> \\
+      <error-page> \\
+        <error-code>401</error-code> \\
+        <location>/error.jsp</location> \\
+      </error-page> \\
+      <error-page> \\
+        <error-code>403</error-code> \\
+        <location>/error.jsp</location> \\
+      </error-page> \\
       <error-page> \\
         <error-code>404</error-code> \\
         <location>/error.jsp</location> \\
