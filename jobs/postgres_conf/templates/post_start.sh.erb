@@ -1,0 +1,23 @@
+#!/bin/bash
+
+  psqlPath=$(find / -name psql | grep /postgres-11.9/)
+
+<% if p("cce_enable") %>
+
+  #[DP-04] 안전한 인증 방식 설정
+  $psqlPath -p 5524 -U vcap -d template1 -c "revoke all on schema public from public"
+  $psqlPath -p 5524 -U vcap -d postgres -c "revoke all on schema public from public"
+  echo "complete - revoke all on schema public from public "
+
+<% end %>
+
+<% if p("sha256_enable") %>
+
+  # 참고내용 - 현재 paaswd 인증 설정 내용 확인 
+  echo "init ======================================================="
+  $psqlPath -p 5524 -U vcap -d postgres -c "select usename, passwd from pg_shadow"
+  $psqlPath -p 5524 -U vcap -d postgres -c "show password_encryption"
+  $psqlPath -p 5524 -U vcap -d postgres -c "select context,name,setting from pg_settings where name = 'password_encryption'"
+  echo "init ======================================================="    
+
+<% end %>

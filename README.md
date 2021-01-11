@@ -1,10 +1,12 @@
-## BOSH PaaS-TA Configuration Release
+## PaaS-TA Configuration Release
 
 Enables configuration of a typical PaaS-TA:
 
 - customize script (job: `common_script`)
   - Note: pre-start, post-deploy, post-start
 - customize tomcat config (job: `tomcat_conf`)
+- customize postgres config (job: `postgres_conf`)
+  - Note: Requires operations/use-postgres.yml
 
 For a description of these and other functions, see `jobs/`.
 

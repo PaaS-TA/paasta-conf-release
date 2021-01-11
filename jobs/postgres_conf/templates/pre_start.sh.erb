@@ -1,0 +1,62 @@
+#!/bin/bash
+
+  psqlPath=$(find / -name psql | grep /postgres-11.9/)
+  binPath=$(find / -name bin | grep /postgres/)
+  confPath=$(find / -name config | grep /postgres/)
+
+<% if p("cce_enable") %>
+  
+  #[DP-05] IP 접근 제한 설정 - iptables 활용 (현버전은 가이드만 제공)
+  #관리자가 VM에 접근하여 iptables 수정하도록 권장
+  #자동적으로 하기 위한 방법 - /etc/hosts 에서 bosh dns ip list 추출 후 각 항목 등록 
+  #포트 전체 거부 : iptables -A  INPUT -p tcp --dport 포트 -j DROP
+  #ex> iptables -A  INPUT -p tcp --dport 5524 -j DROP
+  #포트 ip 허용 : iptables -A  INPUT -s 출발지IP -d 목적지IP -p tcp --dport 포트 -j ACCEPT
+  #ex> iptables -A  INPUT -s 10.0.21.0/24 -d 10.0.21.121 -p tcp --dport 5524 -j ACCEPT
+
+
+  #[DP-10] 로그활성화
+  confCodeCount=`cat $confPath | grep 'log_min_duration_statement' | wc -l`
+  if [ ${confCodeCount} -eq "0" ] ; then
+    {
+    echo " "
+    echo "log_statement = 'all'"
+    echo "log_min_duration_statement = 100"
+    } >> $confPath/postgresql.conf
+    echo "complete - postgresql.conf "
+    cat $confPath/postgresql.conf
+  fi
+<% end %>
+
+
+<% if p("sha256_enable") %>
+  
+  #[DP-06] 안전한 인증 방식 설정
+  cat /dev/null > $confPath/pg_hba.conf
+
+  {
+  echo "local   all             vcap                                    trust"
+  echo "host    all             vcap            127.0.0.1/32            trust"
+  echo "host    all             vcap            ::1/128                 trust"
+  echo " "
+  echo "local   all             all                                     scram-sha-256"
+  echo "host    all             all             127.0.0.1/32            scram-sha-256"
+  echo "host    all             all             ::1/128                 scram-sha-256"
+  echo " "
+  echo "host    all             all             0.0.0.0/0               scram-sha-256"
+  } >> $confPath/pg_hba.conf
+  echo "complete - pg_hba.conf "
+  cat $confPath/pg_hba.conf
+
+
+  #[DP-07] 안전한 암호화 알고리즘 사용 - 계정생성 전에 암호화 방식 교체 
+  encryptCodeCount=`cat $binPath | grep 'alter system set password_encryption' | wc -l`
+  if [ ${encryptCodeCount} -eq "0" ] ; then
+    sed -i "$(grep -Rn 'create_roles' $binPath | awk -F"[:]" '{ print $1 }')i \\
+    $psqlPath -p 5524 -U vcap -d postgres -c \"alter system set password_encryption = \'scram-sha-256\'\" \\
+    $psqlPath -p 5524 -U vcap -d postgres -c \"select pg_reload_conf()\" \\
+    " $binPath/pg_janitor_ctl
+    echo "complete - alter system set password_encryption"
+  fi
+
+<% end %>
