@@ -1,7 +1,7 @@
 name: tomcat_conf
 
 templates:
-  post_deploy.sh.erb: bin/post-deploy
+  post_start.sh.erb: bin/post-start
 
 packages: []
 
