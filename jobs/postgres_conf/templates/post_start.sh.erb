@@ -1,6 +1,7 @@
 #!/bin/bash
 
-  psqlPath=$(find / -name psql | grep /postgres-11.9/)
+  psqlPath=$(find / -name psql | grep /postgres | head -n 1)
+
 
 <% if p("cce_enable") %>
 

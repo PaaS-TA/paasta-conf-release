@@ -1,6 +1,6 @@
 #!/bin/bash
 
-  psqlPath=$(find / -name psql | grep /postgres-11.9/)
+  psqlPath=$(find / -name psql | grep /postgres | head -n 1)
   binPath=$(find / -name bin | grep /postgres/)
   confPath=$(find / -name config | grep /postgres/)
 
