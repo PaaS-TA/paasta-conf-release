@@ -16,7 +16,7 @@
 
 
   #[DP-10] 로그활성화
-  confCodeCount=`cat $confPath | grep 'log_min_duration_statement' | wc -l`
+  confCodeCount=`cat $confPath/postgresql.conf | grep 'log_min_duration_statement' | wc -l`
   if [ ${confCodeCount} -eq "0" ] ; then
     {
     echo " "
