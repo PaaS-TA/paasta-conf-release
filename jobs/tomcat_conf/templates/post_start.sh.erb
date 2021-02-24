@@ -3,7 +3,7 @@
 <% if p("cce_enable") %>
 
   # CCE - tomcat (all-tomcat)
-  for target in $(find / -name conf | grep /tomcat/conf); do
+  for target in $(find / -name conf | grep /tomcat | grep /conf); do
     echo "$target"
 
     #[ID] : WS-05 : 설정 파일 권한
