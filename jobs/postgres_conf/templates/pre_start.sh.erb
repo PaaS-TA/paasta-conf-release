@@ -1,8 +1,9 @@
 #!/bin/bash
 
   psqlPath=$(find / -name psql | grep /postgres | head -n 1)
-  binPath=$(find / -name bin | grep /postgres/)
-  confPath=$(find / -name config | grep /postgres/)
+  binPath=$(find / -name bin | grep /jobs/postgres/)
+  confPath=$(find / -name postgresql.conf | grep /job | head -n 1)
+  confPath=$(echo ${confPath/postgresql.conf/})
 
 <% if p("cce_enable") %>
   
