@@ -1,0 +1,118 @@
+#!/bin/bash
+
+postgres_status=$(ls -l /var/vcap/jobs/postgres 2>/dev/null | wc -l)
+mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
+
+<% if p("cce_enable") %>
+
+  #[postgres] : cce-script-start
+  if [ $postgres_status -ne "0" ] ; then
+
+    psqlPath=$(find / -name psql | grep /postgres | head -n 1)
+
+    #[DP-04] public schema 사용 제한
+    $psqlPath -p 5524 -U vcap -d template1 -c "revoke all on schema public from public"
+    $psqlPath -p 5524 -U vcap -d postgres -c "revoke all on schema public from public"
+    echo "complete - revoke all on schema public from public "
+
+    # 참고내용 - 현재 paaswd 인증 설정 내용 확인
+    echo "init ======================================================="
+    $psqlPath -p 5524 -U vcap -d postgres -c "select usename, passwd from pg_shadow"
+    $psqlPath -p 5524 -U vcap -d postgres -c "show password_encryption"
+    $psqlPath -p 5524 -U vcap -d postgres -c "select context,name,setting from pg_settings where name = 'password_encryption'"
+    echo "init ======================================================="
+
+  fi
+  #[postgres] : cce-script-end
+
+
+  #[pxc-mysql] : cce-script-start
+  if [ $mysql_status -ne "0" ] ; then
+
+    #[DY-07] 안전한 암호화 알고리즘 사용
+    mysqlAccountFile=$(find / -name galera-init-config.yml)
+
+    arrayUser=()
+    arrayPassword=()
+
+    for target in $(cat $mysqlAccountFile | grep 'User:' | sed -e 's/ //g' | awk -F"[:]" '{ print $2 }'); do
+    arrayUser+=("$target")
+    done
+
+    for target in $(cat $mysqlAccountFile | grep 'Password:' | sed -e 's/ //g' | awk -F"[:]" '{ print $2 }'); do
+    arrayPassword+=("$target")
+    done
+
+    galeraAccountFile=$(find / -name galera-agent-setup.sql)
+    arrayUser+=($(cat $galeraAccountFile | awk -F"[']" '{ print $2 }'))
+    arrayPassword+=($(cat $galeraAccountFile | awk -F"[']" '{ print $6 }'))
+
+    clusterAccountFile=$(find / -name cluster_health_logger_setup.sql)
+    arrayUser+=($(cat $clusterAccountFile | awk -F"[']" '{ print $2 }'))
+    arrayPassword+=($(cat $clusterAccountFile | awk -F"[']" '{ print $6 }'))
+
+
+    # array count
+    if [ ${#arrayUser[@]} -eq ${#arrayPassword[@]} ]; then
+      #make sql :: alter user
+      echo "make sql....."
+      cat /dev/null > enable-cce.sql
+      {
+      for ((i=0;i<${#arrayUser[@]};i++)); do
+        if [ "${arrayUser[$i]}" == "root" ]; then
+          echo "alter user '${arrayUser[$i]}'@'localhost' identified with sha256_password by '${arrayPassword[$i]}';"
+          echo "alter user '${arrayUser[$i]}'@'127.0.0.1' identified with sha256_password by '${arrayPassword[$i]}';"
+          echo "alter user '${arrayUser[$i]}'@'::1' identified with sha256_password by '${arrayPassword[$i]}';"
+        elif [ "${arrayUser[$i]}" == "galera-agent" ] || [ "${arrayUser[$i]}" == "cluster-health-logger" ]; then
+          echo "alter user '${arrayUser[$i]}'@'127.0.0.1' identified with sha256_password by '${arrayPassword[$i]}';"
+        else
+          echo "alter user '${arrayUser[$i]}'@'%' identified with sha256_password by '${arrayPassword[$i]}';"
+        fi
+      done
+      } >> enable-cce.sql
+
+      #make sql :: block_encryption_mode
+      echo "set block_encryption_mode = 'aes-256-ecb';" >> enable-cce.sql
+
+      #make sql :: flush privileges
+      echo "flush privileges;" >> enable-cce.sql
+
+      #run sql
+      echo "running sql....."
+      sleep 1
+      /var/vcap/packages/pxc/bin/mysql -u"${arrayUser[0]}" -p"${arrayPassword[0]}" -S /var/vcap/sys/run/pxc-mysql/mysqld.sock < enable-cce.sql
+      sleep 1
+
+      #connection test
+      echo "connect test....."
+      mysqlPort=$(cat /var/vcap/jobs/pxc-mysql/config/my.cnf | grep 'port' | sed -e 's/ //g' | awk -F"[=]" '{ print $2 }' | head -n 1)
+      cat /dev/null > connTest.out
+      for ((i=0;i<${#arrayUser[@]};i++)); do
+        if [ "${arrayUser[$i]}" == "root" ]; then
+          /var/vcap/packages/pxc/bin/mysqladmin -u"${arrayUser[$i]}" -p"${arrayPassword[$i]}" -S /var/vcap/sys/run/pxc-mysql/mysqld.sock ping > /dev/null 2>> connTest.out
+        elif [ "${arrayUser[$i]}" == "galera-agent" ] || [ "${arrayUser[$i]}" == "cluster-health-logger" ]; then
+          /var/vcap/packages/pxc/bin/mysqladmin -u"${arrayUser[$i]}" -p"${arrayPassword[$i]}" -h 127.0.0.1 -P "${mysqlPort}" -S /var/vcap/sys/run/pxc-mysql/mysqld.sock ping > /dev/null 2>> connTest.out
+        else
+          /var/vcap/packages/pxc/bin/mysqladmin -u"${arrayUser[$i]}" -p"${arrayPassword[$i]}" -S /var/vcap/sys/run/pxc-mysql/mysqld.sock ping > /dev/null 2>> connTest.out
+        fi
+      done
+
+      connErrorCnt=$(cat connTest.out | grep error | wc -l)
+
+      if [ $connErrorCnt -eq '0' ]; then
+        echo "alter password complete : all account connection check success"
+      else
+        echo "failed alter password : retry script"
+        echo "------------------------------------"
+        cat connTest.out | grep error
+      fi
+
+    else
+      echo "Count is different : User and Password - check $mysqlAccountFile"
+    fi
+
+  fi
+  #[pxc-mysql] : cce-script-end
+
+<% end %>
+

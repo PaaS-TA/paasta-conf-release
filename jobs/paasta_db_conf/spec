@@ -1,0 +1,13 @@
+name: paasta_db_conf
+
+templates:
+  pre_start.sh.erb: bin/pre-start
+  post_start.sh.erb: bin/post-start
+
+packages: []
+
+properties:
+  cce_enable:
+    description: cce_paasta_db_patch.
+    default: false
+
