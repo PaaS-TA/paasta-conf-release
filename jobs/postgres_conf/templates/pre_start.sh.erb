@@ -51,11 +51,11 @@
 
 
   #[DP-07] 안전한 암호화 알고리즘 사용 - 계정생성 전에 암호화 방식 교체 
-  encryptCodeCount=`cat $binPath | grep 'alter system set password_encryption' | wc -l`
+  encryptCodeCount=`cat $binPath/pg_janitor_ctl | grep 'alter system set password_encryption' | wc -l`
   if [ ${encryptCodeCount} -eq "0" ] ; then
-    sed -i "$(grep -Rn 'create_roles' $binPath | awk -F"[:]" '{ print $1 }')i \\
-    $psqlPath -p 5524 -U vcap -d postgres -c \"alter system set password_encryption = \'scram-sha-256\'\" \\
-    $psqlPath -p 5524 -U vcap -d postgres -c \"select pg_reload_conf()\" \\
+    sed -i "$(grep -Rn 'create_roles' $binPath/pg_janitor_ctl | awk -F"[:]" '{ print $1 }')i \\
+    \${PACKAGE_DIR}/bin/psql -p 5524 -U vcap -d postgres -c \"alter system set password_encryption = \'scram-sha-256\'\" \\
+    \${PACKAGE_DIR}/bin/psql -p 5524 -U vcap -d postgres -c \"select pg_reload_conf()\" \\
     " $binPath/pg_janitor_ctl
     echo "complete - alter system set password_encryption"
   fi
