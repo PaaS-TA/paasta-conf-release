@@ -3,7 +3,8 @@
 <% if p("cce_enable") %>
 
   # CCE - tomcat (all-tomcat)
-  for target in $(find / -name conf | grep /tomcat/conf); do
+  for target in $(find / -name web.xml -type f | grep tomcat | grep conf); do
+    target=${target///web.xml/''}
     echo "$target"
 
     #[ID] : WS-05 : 설정 파일 권한
