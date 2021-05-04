@@ -10,4 +10,6 @@ properties:
   cce_enable:
     description: cce_paasta_db_patch.
     default: false
-
+  postgres_admin_password:
+    description: cce_paasta_db_patch.
+    default: ""

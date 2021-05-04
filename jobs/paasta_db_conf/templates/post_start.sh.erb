@@ -20,6 +20,7 @@ mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
     $psqlPath -p 5524 -U vcap -d postgres -c "select usename, passwd from pg_shadow"
     $psqlPath -p 5524 -U vcap -d postgres -c "show password_encryption"
     $psqlPath -p 5524 -U vcap -d postgres -c "select context,name,setting from pg_settings where name = 'password_encryption'"
+    $psqlPath -p 5524 -U vcap -d postgres -c "alter user vcap with password '<%= p("postgres_admin_password") %>'"
     echo "init ======================================================="
 
   fi
