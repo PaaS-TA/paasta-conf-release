@@ -62,10 +62,10 @@ mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
       for ((i=0;i<${#arrayUser[@]};i++)); do
         if [ "${arrayUser[$i]}" == "root" ]; then
           echo "alter user '${arrayUser[$i]}'@'localhost' identified with mysql_native_password by '${arrayPassword[$i]}';"
-          echo "alter user '${arrayUser[$i]}'@'127.0.0.1' identified with mysql_native_password by '${arrayPassword[$i]}';"
-          echo "alter user '${arrayUser[$i]}'@'::1' identified with mysql_native_password by '${arrayPassword[$i]}';"
+          echo "alter user '${arrayUser[$i]}'@'127.0.0.1' identified with sha256_password by '${arrayPassword[$i]}';"
+          echo "alter user '${arrayUser[$i]}'@'::1' identified with sha256_password by '${arrayPassword[$i]}';"
         elif [ "${arrayUser[$i]}" == "galera-agent" ] || [ "${arrayUser[$i]}" == "cluster-health-logger" ]; then
-          echo "alter user '${arrayUser[$i]}'@'127.0.0.1' identified with mysql_native_password by '${arrayPassword[$i]}';"
+          echo "alter user '${arrayUser[$i]}'@'127.0.0.1' identified with sha256_password by '${arrayPassword[$i]}';"
         else
           echo "alter user '${arrayUser[$i]}'@'%' identified with sha256_password by '${arrayPassword[$i]}';"
         fi
