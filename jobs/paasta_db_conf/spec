@@ -13,3 +13,5 @@ properties:
   postgres_admin_password:
     description: cce_paasta_db_patch.
     default: ""
+  database.port:
+    default: 5524

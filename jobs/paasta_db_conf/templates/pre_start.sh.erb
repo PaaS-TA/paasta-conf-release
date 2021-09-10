@@ -56,8 +56,8 @@ mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
     encryptCodeCount=`cat $binPath/pg_janitor_ctl | grep 'alter system set password_encryption' | wc -l`
     if [ ${encryptCodeCount} -eq "0" ] ; then
       sed -i "$(grep -Rn 'create_roles' $binPath/pg_janitor_ctl | awk -F"[:]" '{ print $1 }')i \\
-      \${PACKAGE_DIR}/bin/psql -p 5524 -U vcap -d postgres -c \"alter system set password_encryption = \'scram-sha-256\'\" \\
-      \${PACKAGE_DIR}/bin/psql -p 5524 -U vcap -d postgres -c \"select pg_reload_conf()\" \\
+      \${PACKAGE_DIR}/bin/psql -p <%= p("database.port") %> -U vcap -d postgres -c \"alter system set password_encryption = \'scram-sha-256\'\" \\
+      \${PACKAGE_DIR}/bin/psql -p <%= p("database.port") %> -U vcap -d postgres -c \"select pg_reload_conf()\" \\
       " $binPath/pg_janitor_ctl
       echo "complete - alter system set password_encryption"
     fi
