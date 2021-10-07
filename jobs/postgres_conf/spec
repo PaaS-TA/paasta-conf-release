@@ -13,3 +13,5 @@ properties:
   sha256_enable:
     description: cce_postgres_sha256_patch. (beta)
     default: false
+  database.port:
+      default: 5524

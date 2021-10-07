@@ -11,16 +11,16 @@ mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
     psqlPath=$(find / -name psql | grep /postgres | head -n 1)
 
     #[DP-04] public schema 사용 제한
-    $psqlPath -p 5524 -U vcap -d template1 -c "revoke all on schema public from public"
-    $psqlPath -p 5524 -U vcap -d postgres -c "revoke all on schema public from public"
+    $psqlPath -p <%= p("database.port") %> -U vcap -d template1 -c "revoke all on schema public from public"
+    $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "revoke all on schema public from public"
     echo "complete - revoke all on schema public from public "
 
     # 참고내용 - 현재 paaswd 인증 설정 내용 확인
     echo "init ======================================================="
-    $psqlPath -p 5524 -U vcap -d postgres -c "select usename, passwd from pg_shadow"
-    $psqlPath -p 5524 -U vcap -d postgres -c "show password_encryption"
-    $psqlPath -p 5524 -U vcap -d postgres -c "select context,name,setting from pg_settings where name = 'password_encryption'"
-    $psqlPath -p 5524 -U vcap -d postgres -c "alter user vcap with password '<%= p("postgres_admin_password") %>'"
+    $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "select usename, passwd from pg_shadow"
+    $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "show password_encryption"
+    $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "select context,name,setting from pg_settings where name = 'password_encryption'"
+    $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "alter user vcap with password '<%= p("postgres_admin_password") %>'"
     echo "init ======================================================="
 
   fi
