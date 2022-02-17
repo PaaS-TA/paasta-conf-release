@@ -10,6 +10,9 @@ properties:
   cce_enable:
     description: cce_postgres_patch. (except sha-256)
     default: false
+  postgres_admin_password:
+    description: cce_postgres_vcap_password.
+    default: ""
   sha256_enable:
     description: cce_postgres_sha256_patch. (beta)
     default: false

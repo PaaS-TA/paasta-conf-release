@@ -1,24 +1,42 @@
 #!/bin/bash
 
-  psqlPath=$(find / -name psql | grep /postgres | head -n 1)
-
+  #본 postgres_conf job은 bosh package postgres 에 맞추어 설정되어 있음
+  #타 서비스에서 사용할 경우 paasta_db_conf job을 활용하여 사용하길 권장함
+  postgresVersion=$(find /var/vcap/data/packages/ -name postgres-* | cut -d - -f 2 | sort -nr | head -n 1)
+  PACKAGE_DIR="/var/vcap/packages/postgres-${postgresVersion}"
+  JOB_DIR="/var/vcap/jobs/postgres-cce"
+  STORE_DIR="/var/vcap/store/postgres-${postgresVersion}"
+  DB_PORT=$(cat ${JOB_DIR}/config/postgresql.conf | grep 'port' | cut -d = -f 2 | tr -d ' ')
+  #DB_PORT="<%= p("database.port") %>"
 
 <% if p("cce_enable") %>
 
   #[DP-04] 안전한 인증 방식 설정
-  $psqlPath -p <%= p("database.port") %> -U vcap -d template1 -c "revoke all on schema public from public"
-  $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "revoke all on schema public from public"
+  ${PACKAGE_DIR}/bin/psql -h 127.0.0.1 -p ${DB_PORT} -U vcap -d template1 -c "revoke all on schema public from public"
+  ${PACKAGE_DIR}/bin/psql -h 127.0.0.1 -p ${DB_PORT} -U vcap -d postgres -c "revoke all on schema public from public"
+  ${PACKAGE_DIR}/bin/psql -h 127.0.0.1 -p ${DB_PORT} -U vcap -d postgres -c "alter user vcap with password '<%= p("postgres_admin_password") %>'"
   echo "complete - revoke all on schema public from public "
 
+  #[DP-06] 안전한 인증 방식 설정: 설치 후 local all trust 에 대한 인증 삭제
+  cat /dev/null > ${STORE_DIR}/pg_hba.conf
+
+  {
+  echo "local   all             all                                     scram-sha-256"
+  echo "host    all             all             127.0.0.1/32            scram-sha-256"
+  echo "host    all             all             ::1/128                 scram-sha-256"
+  echo " "
+  echo "host    all             all             0.0.0.0/0               scram-sha-256"
+  } >> ${STORE_DIR}/pg_hba.conf
+  echo "complete - pg_hba.conf "
+  cat ${STORE_DIR}/pg_hba.conf
+
+
+  # 참고내용 - 현재 paaswd 인증 설정 내용 확인
+  echo "info ======================================================="
+  PGPASSWORD='<%= p("postgres_admin_password") %>' ${PACKAGE_DIR}/bin/psql -h 127.0.0.1 -p ${DB_PORT} -U vcap -d postgres -c "select usename, passwd from pg_shadow"
+  PGPASSWORD='<%= p("postgres_admin_password") %>' ${PACKAGE_DIR}/bin/psql -h 127.0.0.1 -p ${DB_PORT} -U vcap -d postgres -c "show password_encryption"
+  PGPASSWORD='<%= p("postgres_admin_password") %>' ${PACKAGE_DIR}/bin/psql -h 127.0.0.1 -p ${DB_PORT} -U vcap -d postgres -c "select context,name,setting from pg_settings where name = 'password_encryption'"
+  echo "info  ======================================================="
+
 <% end %>
 
-<% if p("sha256_enable") %>
-
-  # 참고내용 - 현재 paaswd 인증 설정 내용 확인 
-  echo "init ======================================================="
-  $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "select usename, passwd from pg_shadow"
-  $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "show password_encryption"
-  $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "select context,name,setting from pg_settings where name = 'password_encryption'"
-  echo "init ======================================================="    
-
-<% end %>

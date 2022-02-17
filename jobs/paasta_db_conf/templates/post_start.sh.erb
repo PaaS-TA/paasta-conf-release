@@ -9,11 +9,27 @@ mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
   if [ $postgres_status -ne "0" ] ; then
 
     psqlPath=$(find / -name psql | grep /postgres | head -n 1)
+    confPath=$(find / -name postgresql.conf | grep /job | head -n 1)
+    confPath=$(echo ${confPath/postgresql.conf/})
 
     #[DP-04] public schema 사용 제한
     $psqlPath -p <%= p("database.port") %> -U vcap -d template1 -c "revoke all on schema public from public"
     $psqlPath -p <%= p("database.port") %> -U vcap -d postgres -c "revoke all on schema public from public"
     echo "complete - revoke all on schema public from public "
+
+    #[DP-06] 안전한 인증 방식 설정: 설치 후 local all trust 에 대한 인증 삭제
+    cat /dev/null > $confPath/pg_hba.conf
+
+    {
+    echo "local   all             all                                     scram-sha-256"
+    echo "host    all             all             127.0.0.1/32            scram-sha-256"
+    echo "host    all             all             ::1/128                 scram-sha-256"
+    echo " "
+    echo "host    all             all             0.0.0.0/0               scram-sha-256"
+    } >> $confPath/pg_hba.conf
+    echo "complete - pg_hba.conf "
+    cat $confPath/pg_hba.conf
+
 
     # 참고내용 - 현재 paaswd 인증 설정 내용 확인
     echo "init ======================================================="
