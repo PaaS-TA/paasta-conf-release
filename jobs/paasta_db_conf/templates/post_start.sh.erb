@@ -61,12 +61,12 @@ mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
     done
 
     galeraAccountFile=$(find / -name galera-agent-setup.sql)
-    arrayUser+=($(cat $galeraAccountFile | awk -F"[']" '{ print $2 }'))
-    arrayPassword+=($(cat $galeraAccountFile | awk -F"[']" '{ print $6 }'))
+    arrayUser+=($(cat $galeraAccountFile | grep "CREATE USER" | awk -F"[']" '{ print $2 }'))
+    arrayPassword+=($(cat $galeraAccountFile | grep "CREATE USER" | awk -F"[']" '{ print $6 }'))
 
     clusterAccountFile=$(find / -name cluster_health_logger_setup.sql)
-    arrayUser+=($(cat $clusterAccountFile | awk -F"[']" '{ print $2 }'))
-    arrayPassword+=($(cat $clusterAccountFile | awk -F"[']" '{ print $6 }'))
+    arrayUser+=($(cat $clusterAccountFile  | grep "CREATE USER" | awk -F"[']" '{ print $2 }'))
+    arrayPassword+=($(cat $clusterAccountFile | grep "CREATE USER" | awk -F"[']" '{ print $6 }'))
 
 
     # array count
@@ -80,8 +80,12 @@ mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
           echo "alter user '${arrayUser[$i]}'@'localhost' identified with mysql_native_password by '${arrayPassword[$i]}';"
           echo "alter user '${arrayUser[$i]}'@'127.0.0.1' identified with sha256_password by '${arrayPassword[$i]}';"
           echo "alter user '${arrayUser[$i]}'@'::1' identified with sha256_password by '${arrayPassword[$i]}';"
-        elif [ "${arrayUser[$i]}" == "galera-agent" ] || [ "${arrayUser[$i]}" == "cluster-health-logger" ]; then
+        elif [ "${arrayUser[$i]}" == "galera-agent" ]; then
+          echo "alter user '${arrayUser[$i]}'@'localhost' identified with sha256_password by '${arrayPassword[$i]}';"
+        elif [ "${arrayUser[$i]}" == "cluster-health-logger" ]; then
           echo "alter user '${arrayUser[$i]}'@'127.0.0.1' identified with sha256_password by '${arrayPassword[$i]}';"
+	  ## pxc 0.38.0 cluster-health-logger - use localhost issue fix
+          echo "create user if not exist '${arrayUser[$i]}'@'localhost' identified with sha256_password by '${arrayPassword[$i]}';"
         else
           echo "alter user '${arrayUser[$i]}'@'%' identified with sha256_password by '${arrayPassword[$i]}';"
         fi
@@ -107,7 +111,9 @@ mysql_status=$(ls -l /var/vcap/jobs/pxc-mysql 2>/dev/null | wc -l)
       for ((i=0;i<${#arrayUser[@]};i++)); do
         if [ "${arrayUser[$i]}" == "root" ]; then
           /var/vcap/packages/pxc/bin/mysqladmin -u"${arrayUser[$i]}" -p"${arrayPassword[$i]}" -S /var/vcap/sys/run/pxc-mysql/mysqld.sock ping > /dev/null 2>> connTest.out
-        elif [ "${arrayUser[$i]}" == "galera-agent" ] || [ "${arrayUser[$i]}" == "cluster-health-logger" ]; then
+        elif [ "${arrayUser[$i]}" == "galera-agent" ]; then
+          /var/vcap/packages/pxc/bin/mysqladmin -u"${arrayUser[$i]}" -p"${arrayPassword[$i]}" -h localhost -P "${mysqlPort}" -S /var/vcap/sys/run/pxc-mysql/mysqld.sock ping > /dev/null 2>> connTest.out
+        elif [ "${arrayUser[$i]}" == "cluster-health-logger" ]; then
           /var/vcap/packages/pxc/bin/mysqladmin -u"${arrayUser[$i]}" -p"${arrayPassword[$i]}" -h 127.0.0.1 -P "${mysqlPort}" -S /var/vcap/sys/run/pxc-mysql/mysqld.sock ping > /dev/null 2>> connTest.out
         else
           /var/vcap/packages/pxc/bin/mysqladmin -u"${arrayUser[$i]}" -p"${arrayPassword[$i]}" -S /var/vcap/sys/run/pxc-mysql/mysqld.sock ping > /dev/null 2>> connTest.out
