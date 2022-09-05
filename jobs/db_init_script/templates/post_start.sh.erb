@@ -1,0 +1,12 @@
+#!/bin/bash
+
+DATABASE_TYPE=<%= p("database_type") %>
+DB_CLIENT_PATH=<%= p("db_client_path") %>
+USERNAME=<%= p("db_username") %>
+PASSWORD=<%= p("db_password") %>
+SOCKET_PATH=<%= p("socket_path") %>
+
+
+sleep <%= p("delay_time") %>s
+
+$DB_CLIENT_PATH -u$USERNAME -p$PASSWORD -S $SOCKET_PATH < /var/vcap/jobs/db_init_script/config/init.sql
