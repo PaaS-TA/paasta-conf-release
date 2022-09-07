@@ -1,0 +1,30 @@
+name: db_init_script
+
+templates:
+  post_start.sh.erb: bin/post-start
+  init.sql.erb: config/init.sql
+
+packages: []
+
+properties:
+  db_client_path :
+    description: Database client path
+    example: /var/vcap/packages/pxc/bin/mysql
+  db_username :
+    description: Database username
+    default: root
+  db_password :
+    description : Database password
+  socket_path :
+    description : Database socket path (Optional)
+    example: /var/vcap/sys/run/pxc-mysql/mysqld.sock
+  database_type :
+    description : mysql or postgres
+  init_sql :
+    example: |-
+        create user if not exists 'root'@'localhost' identified with sha256_password by 'password';
+  delay_time :
+    descrition : post_start delay_time (second)
+    example: 10
+    default: 10
+
